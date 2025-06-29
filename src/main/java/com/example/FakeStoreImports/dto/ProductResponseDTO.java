@@ -15,7 +15,7 @@ public class ProductResponseDTO {
     private String title;
     private BigDecimal price;
     private String description;
-    private String categoryName;
+    private CategoryDTO category;
     private String image;
     private RatingDTO rating;
 
@@ -25,7 +25,12 @@ public class ProductResponseDTO {
         dto.setTitle(product.getTitle());
         dto.setPrice(product.getPrice());
         dto.setDescription(product.getDescription());
-        dto.setCategoryName(product.getCategory().getName());
+        if (product.getCategory() != null) {
+            dto.setCategory(new CategoryDTO(
+                    product.getCategory().getId(),
+                    product.getCategory().getName()
+            ));
+        }
         dto.setImage(product.getImage());
 
         if (product.getRating() != null) {

@@ -1,6 +1,8 @@
 package com.example.FakeStoreImports.service;
 
 import com.example.FakeStoreImports.dto.ProductDTO;
+import com.example.FakeStoreImports.dto.ProductRequestDTO;
+import com.example.FakeStoreImports.dto.ProductResponseDTO;
 import com.example.FakeStoreImports.entity.Category;
 import com.example.FakeStoreImports.entity.Product;
 import com.example.FakeStoreImports.entity.Rating;
@@ -68,8 +70,9 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public Page<Product> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable);
+    public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(ProductResponseDTO::fromEntity);
     }
 
     public Page<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
@@ -80,8 +83,35 @@ public class ProductService {
         return productRepository.findById(id);
     }
 
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
+    @Transactional
+    public ProductResponseDTO createProduct(ProductRequestDTO requestDTO) {
+        // Преобразуем DTO в сущность Product
+        Product product = new Product();
+        product.setTitle(requestDTO.getTitle());
+        product.setPrice(requestDTO.getPrice());
+        product.setDescription(requestDTO.getDescription());
+        product.setImage(requestDTO.getImage());
+
+        // Обрабатываем категорию (находим или создаем новую)
+        Category category = categoryRepository.findByName(requestDTO.getCategoryName())
+                .orElseGet(() -> {
+                    Category newCategory = new Category();
+                    newCategory.setName(requestDTO.getCategoryName());
+                    return categoryRepository.save(newCategory);
+                });
+        product.setCategory(category);
+
+        // Обрабатываем рейтинг (если есть)
+        if (requestDTO.getRating() != null) {
+            Rating rating = new Rating();
+            rating.setRate(requestDTO.getRating().getRate());
+            rating.setCount(requestDTO.getRating().getCount());
+            product.setRating(rating);
+        }
+
+        // Сохраняем продукт и возвращаем DTO
+        Product savedProduct = productRepository.save(product);
+        return ProductResponseDTO.fromEntity(savedProduct);
     }
 
     public Optional<Product> updateProduct(Long id, Product productDetails) {

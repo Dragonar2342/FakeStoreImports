@@ -1,5 +1,6 @@
 package com.example.FakeStoreImports.controller;
 
+import com.example.FakeStoreImports.dto.ProductRequestDTO;
 import com.example.FakeStoreImports.dto.ProductResponseDTO;
 import com.example.FakeStoreImports.dto.RatingDTO;
 import com.example.FakeStoreImports.entity.Product;
@@ -29,9 +30,8 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<Page<ProductResponseDTO>> getAllProducts(Pageable pageable) {
-        Page<Product> products = productService.getAllProducts(pageable);
-        Page<ProductResponseDTO> dtos = products.map(ProductResponseDTO::fromEntity);
-        return ResponseEntity.ok(dtos);
+        Page<ProductResponseDTO> products = productService.getAllProducts(pageable);
+        return ResponseEntity.ok(products);
     }
 
     @GetMapping("/filter")
@@ -54,8 +54,9 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.createProduct(product));
+    public ResponseEntity<ProductResponseDTO> createProduct(@RequestBody ProductRequestDTO requestDTO) {
+        ProductResponseDTO createdProduct = productService.createProduct(requestDTO);
+        return ResponseEntity.ok(createdProduct);
     }
 
     @PutMapping("/{id}")

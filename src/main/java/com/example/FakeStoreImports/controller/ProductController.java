@@ -76,4 +76,23 @@ public class ProductController {
     public ResponseEntity<List<String>> getAllCategories() {
         return ResponseEntity.ok(productService.getAllCategories());
     }
+
+    @GetMapping("/category/{categoryName}")
+    public ResponseEntity<Page<ProductResponseDTO>> getProductsByCategory(
+            @PathVariable String categoryName,
+            Pageable pageable) {
+        Page<ProductResponseDTO> products = productService.getProductsByCategory(categoryName, pageable);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/sorted")
+    public ResponseEntity<Page<ProductResponseDTO>> getProductsSorted(
+            @RequestParam(required = false) String priceDirection,
+            @RequestParam(required = false) String categoryDirection,
+            Pageable pageable) {
+
+        Page<ProductResponseDTO> products = productService.getProductsSorted(
+                priceDirection, categoryDirection, pageable);
+        return ResponseEntity.ok(products);
+    }
 }

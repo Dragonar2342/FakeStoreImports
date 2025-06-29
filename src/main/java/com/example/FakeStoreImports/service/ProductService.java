@@ -10,12 +10,15 @@ import com.example.FakeStoreImports.repository.CategoryRepository;
 import com.example.FakeStoreImports.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,11 +42,38 @@ public class ProductService {
 
         if (productDTOs != null) {
             for (ProductDTO dto : productDTOs) {
-                if (!productRepository.existsById(dto.getId())) {
-                    saveProductFromDTO(dto);
-                }
+                productRepository.findById(dto.getId())
+                        .ifPresentOrElse(
+                                existingProduct -> updateProductFromDTO(existingProduct, dto),
+                                () -> saveProductFromDTO(dto)
+                        );
             }
         }
+    }
+
+    private void updateProductFromDTO(Product existingProduct, ProductDTO dto) {
+        Category category = categoryRepository.findByName(dto.getCategory())
+                .orElseGet(() -> {
+                    Category newCategory = new Category();
+                    newCategory.setName(dto.getCategory());
+                    return categoryRepository.save(newCategory);
+                });
+
+        Rating rating = existingProduct.getRating();
+        if (rating == null) {
+            rating = new Rating();
+            existingProduct.setRating(rating);
+        }
+        rating.setRate(dto.getRating().getRate());
+        rating.setCount(dto.getRating().getCount());
+
+        existingProduct.setTitle(dto.getTitle());
+        existingProduct.setPrice(dto.getPrice());
+        existingProduct.setDescription(dto.getDescription());
+        existingProduct.setCategory(category);
+        existingProduct.setImage(dto.getImage());
+
+        productRepository.save(existingProduct);
     }
 
     private void saveProductFromDTO(ProductDTO dto) {
@@ -85,14 +115,12 @@ public class ProductService {
 
     @Transactional
     public ProductResponseDTO createProduct(ProductRequestDTO requestDTO) {
-        // Преобразуем DTO в сущность Product
         Product product = new Product();
         product.setTitle(requestDTO.getTitle());
         product.setPrice(requestDTO.getPrice());
         product.setDescription(requestDTO.getDescription());
         product.setImage(requestDTO.getImage());
 
-        // Обрабатываем категорию (находим или создаем новую)
         Category category = categoryRepository.findByName(requestDTO.getCategoryName())
                 .orElseGet(() -> {
                     Category newCategory = new Category();
@@ -101,7 +129,6 @@ public class ProductService {
                 });
         product.setCategory(category);
 
-        // Обрабатываем рейтинг (если есть)
         if (requestDTO.getRating() != null) {
             Rating rating = new Rating();
             rating.setRate(requestDTO.getRating().getRate());
@@ -109,7 +136,6 @@ public class ProductService {
             product.setRating(rating);
         }
 
-        // Сохраняем продукт и возвращаем DTO
         Product savedProduct = productRepository.save(product);
         return ProductResponseDTO.fromEntity(savedProduct);
     }
@@ -139,5 +165,43 @@ public class ProductService {
 
     public List<String> getAllCategories() {
         return categoryRepository.findAllUniqueCategoryNames();
+    }
+
+    public Page<ProductResponseDTO> getProductsByCategory(String categoryName, Pageable pageable) {
+        return productRepository.findByCategoryName(categoryName, pageable)
+                .map(ProductResponseDTO::fromEntity);
+    }
+
+    public Page<ProductResponseDTO> getProductsSorted(
+            String priceDirection, String categoryDirection, Pageable pageable) {
+
+        Sort sort = buildSort(priceDirection, categoryDirection);
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort);
+
+        return productRepository.findAll(sortedPageable)
+                .map(ProductResponseDTO::fromEntity);
+    }
+
+    private Sort buildSort(String priceDirection, String categoryDirection) {
+        List<Sort.Order> orders = new ArrayList<>();
+
+        if (priceDirection != null) {
+            orders.add(new Sort.Order(
+                    "asc".equalsIgnoreCase(priceDirection) ?
+                            Sort.Direction.ASC : Sort.Direction.DESC,
+                    "price"));
+        }
+
+        if (categoryDirection != null) {
+            orders.add(new Sort.Order(
+                    "asc".equalsIgnoreCase(categoryDirection) ?
+                            Sort.Direction.ASC : Sort.Direction.DESC,
+                    "category.name"));
+        }
+
+        return orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);
     }
 }

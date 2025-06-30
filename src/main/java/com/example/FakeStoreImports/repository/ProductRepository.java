@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findAll(Pageable pageable);
@@ -19,4 +20,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                      Pageable pageable);
 
     Page<Product> findByCategoryName(String categoryName, Pageable pageable);
+
+    @Query("SELECT p.id FROM Product p")
+    Set<Long> findAllIds();
 }

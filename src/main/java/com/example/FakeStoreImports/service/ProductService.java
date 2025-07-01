@@ -39,7 +39,6 @@ public class ProductService {
                 .block();
 
         if (productDTOs != null) {
-            // Получаем все существующие ID продуктов из БД
             Set<Long> existingProductIds = productRepository.findAllIds();
 
             Set<Long> externalProductIds = new HashSet<>();

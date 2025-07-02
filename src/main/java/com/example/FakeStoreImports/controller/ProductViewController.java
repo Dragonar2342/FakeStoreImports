@@ -5,6 +5,13 @@ import com.example.FakeStoreImports.dto.ProductResponseDTO;
 import com.example.FakeStoreImports.entity.Product;
 import com.example.FakeStoreImports.exception.ResourceNotFoundException;
 import com.example.FakeStoreImports.service.ProductService;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,19 +28,29 @@ import java.util.stream.IntStream;
 
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "Товары (View)", description = "HTML интерфейс для работы с товарами")
 public class ProductViewController {
 
     private final ProductService productService;
 
     @GetMapping("/")
+    @Operation(summary = "Главная страница", description = "Перенаправляет на страницу товаров")
+    @Hidden
     public String viewHomePage(Model model) {
         return "redirect:/products";
     }
 
     @GetMapping("/products")
     @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "Список товаров", description = "Отображает HTML страницу со списком товаров")
+    @ApiResponse(responseCode = "200", description = "HTML страница со списком товаров",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     public String viewProductsPage(
+            @Parameter(description = "Номер страницы", example = "1")
             @RequestParam("page") Optional<Integer> page,
+            @Parameter(description = "Размер страницы", example = "10")
             @RequestParam("size") Optional<Integer> size,
             Model model) {
 
@@ -58,7 +75,14 @@ public class ProductViewController {
 
     @GetMapping("/products/{id}")
     @PreAuthorize("hasRole('USER')")
-    public String viewProductDetails(@PathVariable Long id, Model model) {
+    @Operation(summary = "Детали товара", description = "Отображает HTML страницу с деталями товара")
+    @ApiResponse(responseCode = "200", description = "HTML страница с деталями товара",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    @ApiResponse(responseCode = "404", description = "Товар не найден")
+    public String viewProductDetails(@Parameter(description = "ID товара", example = "1", required = true)
+                                         @PathVariable Long id, Model model) {
         ProductResponseDTO product = ProductResponseDTO.fromEntity(productService.getProductById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id)));
         model.addAttribute("product", product);
@@ -67,13 +91,22 @@ public class ProductViewController {
 
     @GetMapping("/products/import")
     @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "Страница импорта", description = "Отображает HTML страницу для импорта товаров")
+    @ApiResponse(responseCode = "200", description = "HTML страница импорта",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     public String showImportPage(Model model) {
         return "import-products";
     }
 
     @PostMapping("/products/import")
     @PreAuthorize("hasRole('USER')")
-    public String importProducts(RedirectAttributes redirectAttributes) {
+    @Operation(summary = "Импорт товаров", description = "Выполняет импорт товаров из внешнего API")
+    @ApiResponse(responseCode = "302", description = "Перенаправление на страницу импорта с сообщением")
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    public String importProducts(@Parameter(description = "Атрибуты для перенаправления") RedirectAttributes redirectAttributes) {
         productService.importProductsFromExternalApi();
         redirectAttributes.addFlashAttribute("message", "Products imported successfully!");
         return "redirect:/products/import";
@@ -81,6 +114,11 @@ public class ProductViewController {
 
     @GetMapping("/products/new")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Форма создания", description = "Отображает HTML форму для создания нового товара")
+    @ApiResponse(responseCode = "200", description = "HTML форма создания товара",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     public String showCreateForm(Model model) {
         model.addAttribute("productRequest", new ProductRequestDTO());
         return "create-product";
@@ -98,7 +136,14 @@ public class ProductViewController {
 
     @PostMapping("/products/{id}/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    public String deleteProduct(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    @Operation(summary = "Форма редактирования", description = "Отображает HTML форму для редактирования товара")
+    @ApiResponse(responseCode = "200", description = "HTML форма редактирования товара",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    @ApiResponse(responseCode = "404", description = "Товар не найден")
+    public String deleteProduct(@Parameter(description = "ID товара", example = "1", required = true)
+            @PathVariable Long id, RedirectAttributes redirectAttributes) {
         productService.deleteProduct(id);
         redirectAttributes.addFlashAttribute("message", "Product deleted successfully!");
         return "redirect:/products";
@@ -106,6 +151,11 @@ public class ProductViewController {
 
     @GetMapping("/categories")
     @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "Список категорий", description = "Отображает HTML страницу со списком категорий")
+    @ApiResponse(responseCode = "200", description = "HTML страница со списком категорий",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     public String viewCategories(Model model) {
         model.addAttribute("categories", productService.getAllCategories());
         return "categories";
@@ -113,9 +163,18 @@ public class ProductViewController {
 
     @GetMapping("/categories/{name}")
     @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "Товары по категории", description = "Отображает HTML страницу с товарами категории")
+    @ApiResponse(responseCode = "200", description = "HTML страница с товарами категории",
+            content = @Content(mediaType = "text/html"))
+    @ApiResponse(responseCode = "401", description = "Требуется авторизация")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    @ApiResponse(responseCode = "404", description = "Категория не найдена")
     public String viewProductsByCategory(
+            @Parameter(description = "Название категории", example = "electronics", required = true)
             @PathVariable String name,
+            @Parameter(description = "Номер страницы", example = "1")
             @RequestParam("page") Optional<Integer> page,
+            @Parameter(description = "Размер страницы", example = "10")
             @RequestParam("size") Optional<Integer> size,
             Model model) {
 

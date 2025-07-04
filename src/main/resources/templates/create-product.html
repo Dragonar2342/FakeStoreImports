@@ -10,7 +10,7 @@
     <h1>Create New Product</h1>
     <div class="card">
         <div class="card-body">
-            <form th:action="@{/api/products}" method="post" th:object="${productRequest}">
+            <form th:action="@{/products}" method="post" th:object="${productRequest}">
                 <div class="mb-3">
                     <label for="title" class="form-label">Title</label>
                     <input type="text" class="form-control" id="title" th:field="*{title}" required>

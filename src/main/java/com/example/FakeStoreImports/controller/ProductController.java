@@ -88,7 +88,7 @@ public class ProductController {
     @ApiResponse(responseCode = "401", description = "Требуется авторизация")
     @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     public ResponseEntity<ProductResponseDTO> createProduct(
-            @RequestBody @Valid
+            @Valid
             @Schema(description = "Данные для создания товара")
             ProductRequestDTO requestDTO) {
         ProductResponseDTO createdProduct = productService.createProduct(requestDTO);

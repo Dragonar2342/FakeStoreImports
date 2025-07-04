@@ -2,8 +2,10 @@ package com.example.FakeStoreImports.controller;
 
 import com.example.FakeStoreImports.dto.ProductRequestDTO;
 import com.example.FakeStoreImports.dto.ProductResponseDTO;
+import com.example.FakeStoreImports.entity.Category;
 import com.example.FakeStoreImports.entity.Product;
 import com.example.FakeStoreImports.exception.ResourceNotFoundException;
+import com.example.FakeStoreImports.repository.CategoryRepository;
 import com.example.FakeStoreImports.service.ProductService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +34,7 @@ import java.util.stream.IntStream;
 public class ProductViewController {
 
     private final ProductService productService;
+    private final CategoryRepository categoryRepository;
 
     @GetMapping("/")
     @Operation(summary = "Главная страница", description = "Перенаправляет на страницу товаров")
@@ -124,14 +127,70 @@ public class ProductViewController {
         return "create-product";
     }
 
+    @PostMapping("/products")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Создание нового товара", description = "Позволяет администратору создать новый товар на основе переданных данных")
+    @ApiResponse(responseCode = "302", description = "Товар успешно создан, перенаправление на страницу товара")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    public String createProduct(
+            @Parameter(description = "DTO с данными для создания товара", required = true)
+            @ModelAttribute ProductRequestDTO productRequest, RedirectAttributes redirectAttributes) {
+        ProductResponseDTO createdProduct = productService.createProduct(productRequest);
+        redirectAttributes.addFlashAttribute("message", "Product created successfully!");
+        return "redirect:/products/" + createdProduct.getId();
+    }
+
     @GetMapping("/products/{id}/edit")
     @PreAuthorize("hasRole('ADMIN')")
-    public String showEditForm(@PathVariable Long id, Model model) {
+    @Operation(summary = "Форма редактирования товара", description = "Возвращает страницу с формой для редактирования существующего товара")
+    @ApiResponse(responseCode = "200", description = "Страница редактирования товара успешно загружена")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    @ApiResponse(responseCode = "404", description = "Товар с указанным ID не найден")
+    public String showEditForm(
+            @Parameter(description = "ID товара для редактирования", required = true, example = "1")
+            @PathVariable Long id, Model model) {
         Product product = productService.getProductById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
         model.addAttribute("product", product);
         model.addAttribute("categories", productService.getAllCategories());
         return "edit-product";
+    }
+
+    @PostMapping("/products/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Обновление данных товара", description = "Позволяет администратору обновить информацию о существующем товаре")
+    @ApiResponse(responseCode = "302", description = "Товар успешно обновлен, перенаправление на страницу товара")
+    @ApiResponse(responseCode = "403", description = "Недостаточно прав")
+    @ApiResponse(responseCode = "404", description = "Товар с указанным ID не найден")
+    public String updateProduct(
+            @Parameter(description = "ID товара для обновления", required = true, example = "1")
+            @PathVariable Long id,
+
+            @Parameter(description = "Объект товара с обновленными данными", required = true)
+            @ModelAttribute Product product,
+            RedirectAttributes redirectAttributes) {
+
+        Product updatedProduct = productService.getProductById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
+
+        Category category = categoryRepository.findByName(product.getCategory().getName())
+                .orElseGet(() -> {
+                    Category newCategory = new Category();
+                    newCategory.setName(product.getCategory().getName());
+                    return categoryRepository.save(newCategory);
+                });
+
+        updatedProduct.setId(product.getId());
+        updatedProduct.setTitle(product.getTitle());
+        updatedProduct.setPrice(product.getPrice());
+        updatedProduct.setDescription(product.getDescription());
+        updatedProduct.setCategory(category);
+        updatedProduct.setImage(product.getImage());
+        updatedProduct.setRating(product.getRating());
+
+        productService.updateProduct(updatedProduct.getId(),updatedProduct);
+        redirectAttributes.addFlashAttribute("message", "Product updated successfully!");
+        return "redirect:/products/" + updatedProduct.getId();
     }
 
     @PostMapping("/products/{id}/delete")

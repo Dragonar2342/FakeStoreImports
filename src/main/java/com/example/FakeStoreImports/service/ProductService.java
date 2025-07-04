@@ -103,6 +103,10 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    public Product saveProduct(Product product) {
+        return productRepository.save(product);
+    }
+
     public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable)
                 .map(ProductResponseDTO::fromEntity);

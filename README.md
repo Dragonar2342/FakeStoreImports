@@ -6,103 +6,78 @@ Spring Boot приложение для работы с товарами из Fa
 
 - Java 21
 - Spring Boot 3.x
-- PostgreSQL 17 (или MySQL/MariaDB)
+- PostgreSQL 17
 - Spring Data JPA
 - Spring Web
 
 ## Функционал
+Основные возможности
+1. Импорт данных:
+   - Автоматический импорт товаров из Fake Store API.
+   - Ручной запуск импорта через API.
+   - Обновление существующих товаров.
 
-### Основные возможности
+2. Управление товарами:
+   - CRUD операции с товарами
+   - Фильтрация по цене
+   - Сортировка по цене и категории
+   - Пагинация результатов
 
-1. Импорт товаров из Fake Store API с сохранением в локальную БД
-2. CRUD операции с товарами
-3. Фильтрация товаров по цене
-4. Получение списка уникальных категорий
-5. Пагинация для списков товаров
+3. Работа с категориями:
+   - Получение списка всех категорий
+   - Получение товаров по категории
 
-### Дополнительные возможности
+4. Дополнительные возможности
+   - Автоматическая синхронизация данных (каждые 30 минут)
+   - Unit-тесты
+   - Разделение прав доступа (USER/ADMIN)
+   - Полная документация API через Swagger UI
 
-1. Получение товаров по категории
-2. Повторный импорт с обновлением существующих товаров
-3. Сортировка по цене и категории
-4. Unit-тесты
-
-## API Endpoints
+## REST API Endpoints
 
 ### Products
 
-1. **Импорт продуктов из внешнего API**
-   - `GET /api/products/import`
-
-2. **Получить все продукты (с пагинацией)**
-   - `GET /api/products?page={page}&size={size}`
-   - Параметры:
-     - `page` - номер страницы (начинается с 0)
-     - `size` - количество элементов на странице
-
-3. **Получить продукты по категории**
-   - `GET /api/products/category/{categoryName}?page={page}&size={size}`
-
-4. **Фильтрация по цене**
-   - `GET /api/products/filter?minPrice={minPrice}&maxPrice={maxPrice}&page={page}&size={size}`
-   - Параметры:
-     - `minPrice` - минимальная цена (опционально)
-     - `maxPrice` - максимальная цена (опционально)
-
-5. **Сортировка продуктов**
-   - `GET /api/products/sorted?priceDirection={asc/desc}&categoryDirection={asc/desc}&page={page}&size={size}`
-   - Параметры:
-     - `priceDirection` - направление сортировки по цене (asc или desc)
-     - `categoryDirection` - направление сортировки по категории (asc или desc)
-
-6. **Получить продукт по ID**
-   - `GET /api/products/{id}`
-
-7. **Создать новый продукт**
-   - `POST /api/products`
-   - Тело запроса:
-     ```json
-     {
-         "title": "New Product",
-         "price": 19.99,
-         "description": "Product description",
-         "categoryName": "electronics",
-         "image": "image.jpg",
-         "rating": {
-             "rate": 4.5,
-             "count": 100
-         }
-     }
-     ```
-
-8. **Обновить продукт**
-   - `PUT /api/products/{id}`
-   - Тело запроса:
-     ```json
-     {
-         "id": 21,
-         "title": "Updated Product",
-         "price": 29.99,
-         "description": "Updated description",
-         "category": {
-             "id": 1,
-             "name": "electronics"
-         },
-         "image": "updated.jpg",
-         "rating": {
-             "rate": 4.7,
-             "count": 120
-         }
-     }
-     ```
-
-9. **Удалить продукт**
-   - `DELETE /api/products/{id}`
+| Метод  | Endpoint                              | Описание                             | Требуемая роль |
+|--------|---------------------------------------|--------------------------------------|----------------|
+| GET    | /api/products/import                  | Импорт товаров из внешнего API       | USER           |
+| GET    | /api/products                         | Получить все продукты (с пагинацией) | USER           |
+| GET    | /api/products/category/{categoryName} | Получить продукты по категории       | USER           |
+| GET    | /api/products/filter                  | Фильтрация по цене                   | USER           |
+| GET    | /api/products/sorted                  | Сортировка продуктов                 | USER           |
+| GET    | /api/products/{id}                    | Получить продукт по ID               | USER           |
+| POST   | /api/products                         | Создать новый продукт                | ADMIN          |
+| PUT    | /api/products/{id}                    | Обновить продукт                     | ADMIN          |
+| DELETE | /api/products/{id}                    | Удалить продукт                      | ADMIN          |
 
 ### Categories
 
-10. **Получить все категории**
-    - `GET /api/products/categories`
+| Метод  | Endpoint                              | Описание                             | Требуемая роль |
+|--------|---------------------------------------|--------------------------------------|----------------|
+| GET	   | /api/products/categories	             | Получить все категории	             | USER           |
+
+## Web Interface Endpoints
+
+| Метод  | Endpoint                              | Описание                             | Требуемая роль |
+|--------|---------------------------------------|--------------------------------------|----------------|
+| GET    | `/`                                   | Перенаправление на страницу товаров  | PUBLIC         |
+| GET    | `/login`                              | Страница авторизации                 | PUBLIC         |
+| GET    | `/register`                           | Страница регистрации                 | PUBLIC         |
+| POST   | `/register`                           | Обработка регистрации                | PUBLIC         |
+| GET    | `/products`                           | Список всех товаров (HTML)           | USER           |
+| GET    | `/products/{id}`                      | Страница товара (HTML)               | USER           |
+| GET    | `/products/import`                    | Страница импорта товаров             | USER           |
+| POST   | `/products/import`                    | Запуск импорта товаров               | USER           |
+| GET    | `/products/new`                       | Форма создания товара                | ADMIN          |
+| GET    | `/products/{id}/edit`                 | Форма редактирования товара          | ADMIN          |
+| POST   | `/products/{id}/delete`               | Удаление товара                      | ADMIN          |
+| GET    | `/categories`                         | Список категорий (HTML)              | USER           |
+| GET    | `/categories/{name}`                  | Товары по категории (HTML)           | USER           |
+
+Документация API доступна после запуска приложения:
+
+Swagger UI: http://localhost:8080/swagger-ui.html
+
+OpenAPI спецификация: http://localhost:8080/v3/api-docs
 
 ## Запуск приложения
 
